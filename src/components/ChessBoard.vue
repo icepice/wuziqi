@@ -8,8 +8,8 @@
       </canvas>
       <div class="aside">
         <div @click="reStart">重新开始</div>
-        <div @click="unDo">悔棋</div>
-        <div @click="cancelUnDo">撤销悔棋</div>
+        <div @click="unDo" disabled>悔棋</div>
+        <div @click="cancelUndo">撤销悔棋</div>
       </div>
     </div>    
   </div>
@@ -27,9 +27,11 @@ export default {
         padding: 40,  // 边距
         color: '#333' // 边框颜色
       },
-      chessBoardMatrix: [],  // 棋盘矩阵；0：没有棋子，1：黑旗，2：白旗
+      chessBoardMatrix: [],  // 棋盘矩阵；0：没有棋子，1：黑棋，2：白棋
       isBlack: true,  // 是否为黑棋
-      tips: '黑方的回合'
+      tips: '黑方的回合',
+      preStep: null, // {x:number, y:number, isBlack:boolean, canUndo:boolean}
+      gameOver: false  // 是否游戏结束；true：游戏结束
     }
   },
 
@@ -49,26 +51,38 @@ export default {
       this.drawChessBoard();
     },
 
+    /**
+     * 定义线条路径，在原来的位置加0.5，才能画出1px，否则是2px和出现颜色方面的问题
+     * @param {Context} ctx 绘图上下文
+     * @param {Point} start 起点 Point {x:number, y:number}
+     * @param {Point} end 终点 Point {x:number, y:number}
+     */
+    drawLine(ctx, start, end) {
+      ctx.moveTo(start.x + 0.5, start.y + 0.5);
+      ctx.lineTo(end.x + 0.5, end.y + 0.5);
+    },
+
     /** 
      * 绘制棋盘
      */
     drawChessBoard() {      
       const { canvas, ctx } = this;
       const { count, padding, color } = this.chessBoardStyle;
-      canvas.width = canvas.height = padding * (count + 1);
 
+      canvas.width = canvas.height = padding * (count + 1);
       ctx.save();  // 将样式属性入栈
       ctx.strokeStyle = color;            
       ctx.beginPath();  // 清空路径
       for(var i = 0; i < count; i++){
         const lineOffset = i + 1;  // 线条偏移
         // 画竖线
-        ctx.moveTo(lineOffset * padding + 0.5, padding + 0.5);
-        ctx.lineTo(lineOffset * padding + 0.5, count * padding + 0.5);
-        ctx.stroke();
+        this.drawLine(ctx, { x: lineOffset * padding, y: padding }, { x: lineOffset * padding, y: count * padding });
+        // ctx.moveTo(lineOffset * padding + 0.5, padding + 0.5);
+        // ctx.lineTo(lineOffset * padding + 0.5, count * padding + 0.5);
         // 画横线
-        ctx.moveTo(padding + 0.5, lineOffset * padding + 0.5);
-        ctx.lineTo(count * padding + 0.5, lineOffset * padding + 0.5);
+        this.drawLine(ctx, { x: padding, y: lineOffset * padding }, { x: count * padding, y: lineOffset * padding });
+        // ctx.moveTo(padding + 0.5, lineOffset * padding + 0.5);
+        // ctx.lineTo(count * padding + 0.5, lineOffset * padding + 0.5);
         ctx.stroke();
       }
       ctx.restore();  // 将样式属性出栈
@@ -113,12 +127,13 @@ export default {
     listenDropChessman() {
       const { canvas } = this;
       const { padding, count } = this.chessBoardStyle;
+
       canvas.onclick = (e) => {
         let { offsetX: x, offsetY: y } = e;
         x = Math.round(x / padding) - 1;  // 代表矩阵的行
         y = Math.round(y / padding) - 1;  // 代表矩阵的列
         if(x + 1 === 0 || x === count || y + 1 === 0 || y === count) return console.log('无效点击');
-        if(this.chessBoardMatrix[x][y] != 0) return console.log('该位置已有棋子');  // 判断该位置是否可放置棋子
+        if(this.chessBoardMatrix[x][y] != 0) return console.log('该位置已有棋子');
 
         this.drawChessman((x + 1) * padding, (y + 1) * padding);
         this.chessBoardMatrix[x][y] = this.isBlack ? 1 : 2; // 更新矩阵
@@ -126,9 +141,11 @@ export default {
         if(this.isWin(x, y) > 0) {
           this.tips = this.isBlack ? '！！！ 黑方获胜 ！！！' : '！！！ 白方获胜 ！！！';
           canvas.onclick = null;
-          window.setTimeout(() => window.alert(this.tips), 0);                   
+          this.gameOver = true;
+          // window.setTimeout(() => window.alert(this.tips), 0);                      
           return;
-        };        
+        };
+        this.preStep = { x, y, isBlack: this.isBlack, canUndo: true }; // 记录操作        
         this.isBlack = !this.isBlack;  // 切换角色        
       }
     },
@@ -146,24 +163,36 @@ export default {
       const arrY = chessBoardMatrix[x];  // y轴上连杀
       const arrSlash1 = [];  // 左上至右下轴上连杀
       const arrSlash2 = [];  // 右上至左下轴上连杀
+      let totalScore = 0; // 总共连杀分数
 
-      let totalKill = 0; // 总共连杀数
-
-      [arrX, arrY].forEach((item) => {
+      chessBoardMatrix.forEach((_y, i) => {
+        // 左斜线
+        const S1Item = _y[y - (x - i)];
+        if(S1Item !== undefined){
+            arrSlash1.push(S1Item);
+        }
+        // 右斜线
+        const S2Item = _y[y + (x - i)];
+        if(S2Item !== undefined) {
+            arrSlash2.push(S2Item);
+        }
+      });
+      
+      [arrX, arrY, arrSlash1, arrSlash2].forEach((item) => {
         let temp = item.some((v, k) => {
-          if(v != 0 && 
-            item[k - 1] == v && 
-            item[k - 2] == v &&
-            item[k + 1] == v &&
-            item[k + 2] == v) {
+          if(v !== 0 && 
+            item[k - 1] === v && 
+            item[k - 2] === v &&
+            item[k + 1] === v &&
+            item[k + 2] === v) {
               return true;
           }
         })
         if(temp) {
-          totalKill++;
+          totalScore++;
         }
       });  
-      return totalKill;
+      return totalScore;
     },
 
     /**
@@ -171,6 +200,7 @@ export default {
      */
     reStart() {
       const { canvas, ctx } = this;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       this.drawChessBoard();
       this.initChessboardMatrix();
@@ -182,15 +212,56 @@ export default {
     /**
      * 悔棋
      */
-    unDo() {
-      console.log('unDo');
+    unDo() {      
+      if(!this.preStep) return;  // 没有落子
+      if(this.gameOver) return;  // 游戏结束
+      const { ctx, chessBoardMatrix } = this;
+      const { x, y, canUndo } = this.preStep;      
+      const { padding, color } = this.chessBoardStyle;
+      // const _x = (x + 1) * padding + 0.5;  // 上一步棋子所在的交叉点x
+      // const _y = (y + 1) * padding + 0.5;  // 上一步棋子所在的交叉点y
+      const _x = (x + 1) * padding;  // 上一步棋子所在的交叉点x
+      const _y = (y + 1) * padding;  // 上一步棋子所在的交叉点y
+
+      if(!canUndo) return;
+      ctx.clearRect((x + 0.5) * padding + 0.5, (y + 0.5) * padding + 0.5, padding, padding);
+      chessBoardMatrix[x][y] = 0;  // 重置矩阵到上一步
+      this.isBlack = !this.isBlack;  // 返回上一角色      
+      this.preStep.canUndo = false;  // 不允许连续悔棋
+      ctx.save();
+      ctx.strokeStyle = color;            
+      ctx.beginPath();    
+      this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y - padding * 0.6 });
+      this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y + padding * 0.6 });
+      this.drawLine(ctx, { x: _x, y: _y }, { x: _x - padding * 0.6, y: _y });
+      this.drawLine(ctx, { x: _x, y: _y }, { x: _x + padding * 0.6, y: _y });
+      // ctx.moveTo(_x, _y);
+      // ctx.lineTo(_x, _y - padding * 0.6); // 0.6是为了覆盖更多像素，0.5时会有瑕疵
+      // ctx.moveTo(_x, _y);
+      // ctx.lineTo(_x, _y + padding * 0.6);
+      // ctx.moveTo(_x, _y);
+      // ctx.lineTo(_x - padding * 0.6, _y);
+      // ctx.moveTo(_x, _y);
+      // ctx.lineTo(_x + padding * 0.6, _y);
+      ctx.stroke();       
+      ctx.restore();  // 将样式属性出栈
     },
 
     /**
      * 撤销悔棋
      */
-    cancelUnDo() {
-      console.log('cancelUnDo');
+    cancelUndo() {            
+      if(!this.preStep) return;  // 没有落子
+      if(this.gameOver) return;  // 游戏结束
+      const { x, y, isBlack, canCancelUndo, canUndo} = this.preStep;      
+      const { ctx, chessBoardMatrix } = this;
+      const { padding } = this.chessBoardStyle;
+
+      if(canUndo) return;
+      this.preStep.canUndo = true; // 撤销悔棋后又可以悔棋
+      this.drawChessman((x + 1) * padding, (y + 1) * padding);
+      this.isBlack = !this.isBlack;
+      chessBoardMatrix[x][y] = isBlack ? 1 : 2;
     }
   },
   
@@ -206,7 +277,8 @@ export default {
 </script>
 
 <style scope>
-  .chessBoard {       
+  .chessBoard {     
+    --main-color: #666;  
     position: absolute; 
     top: 50%;
     left: 50%;
@@ -215,7 +287,7 @@ export default {
     user-select:none;
     font-size: 24px;
     font-weight: bold;
-    color: #666;
+    color: var(--main-color);
   }
 
   .title {
@@ -237,14 +309,20 @@ export default {
 
   .aside div {
     flex: 1;
-    border: 1px #666 solid;
+    border: 1px var(--main-color) solid;
     border-radius: 4px;
     margin-bottom: 50px;
     padding: 8px;    
+    width: 34px;
+    box-shadow: 1px 1px 2px 1px #eee;
   }
 
   .aside div:active {
     opacity: 0.6;
+  }
+
+  .aside div:hover {    
+    background-color: #EFEFEF;
   }
 
   canvas {    
