@@ -226,7 +226,7 @@ export default {
       if (this.gameOver) return; // 游戏结束
       const { ctx, chessBoardMatrix } = this;
       const { x, y, canUndo } = this.preStep;
-      const { padding, color } = this.chessBoardStyle;
+      const { count, padding, color } = this.chessBoardStyle;
       const _x = (x + 1) * padding; // 上一步棋子所在的交叉点x
       const _y = (y + 1) * padding; // 上一步棋子所在的交叉点y
 
@@ -243,10 +243,14 @@ export default {
       ctx.save();
       ctx.strokeStyle = color;
       ctx.beginPath();
-      this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y - padding * 0.6 });
-      this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y + padding * 0.6 });
-      this.drawLine(ctx, { x: _x, y: _y }, { x: _x - padding * 0.6, y: _y });
-      this.drawLine(ctx, { x: _x, y: _y }, { x: _x + padding * 0.6, y: _y });
+      if(y !== 0)
+        this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y - padding * 0.6 });  // 上边线
+      if(y !== count - 1)
+        this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y + padding * 0.6 });  // 下边线      
+      if(x !== 0)
+        this.drawLine(ctx, { x: _x, y: _y }, { x: _x - padding * 0.6, y: _y });  // 左边线
+      if(x !== count - 1)
+        this.drawLine(ctx, { x: _x, y: _y }, { x: _x + padding * 0.6, y: _y });  // 右边线
       ctx.stroke();
       ctx.restore(); // 将样式属性出栈
     },
