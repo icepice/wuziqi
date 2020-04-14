@@ -1,16 +1,16 @@
 <template>
   <div id="app">    
-    <chess-board></chess-board>
+    <chessboard></chessboard>
   </div>
 </template>
 
 <script>
-import ChessBoard from "@/components/ChessBoard.vue";
+import Chessboard from "@/components/Chessboard.vue";
 
 export default {
   name: 'App',
   components: {
-    ChessBoard
+    Chessboard
   },
   data() {
     return {
