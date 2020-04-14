@@ -55,12 +55,10 @@ export default {
       chessboardMatrix: [], // 棋盘矩阵；0：没有棋子，1：黑棋，2：白棋
       isBlack: true, // 是否为黑棋
       tips: "黑方的回合",
-
-      // {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标, dom?:element  // dom版才有}
-      preStep: null, 
-      canUndo: false,
+      preStep: null,  // {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标}
+      canUndo: false, // 是否允许悔棋
       gameOver: false, // 是否游戏结束；true：游戏结束
-      isCanvas: false
+      isCanvas: false // 当前是否是canvas
     };
   },
 
@@ -118,17 +116,17 @@ export default {
       if (this.chessboardMatrix[x][y] != 0) return;  // 已有棋子的位置不能下棋
       
       this.preStep = cb_drawChessman(x, y, isBlack ? 'blackColor' : 'whiteColor');
-      this.chessboardMatrix[x][y] = this.isBlack ? 1 : 2; // 更新矩阵
+      this.chessboardMatrix[x][y] = isBlack ? 1 : 2; // 更新矩阵
 
       if (this.isWin(x, y) > 0) {
-        this.tips = this.isBlack
+        this.tips = isBlack
           ? "！！！ 黑方获胜 ！！！"
           : "！！！ 白方获胜 ！！！";
         this.gameOver = true;
         return;
       }
       this.canUndo = true; // 落子后才可以悔棋
-      this.isBlack = !this.isBlack; // 切换角色
+      this.isBlack = !isBlack; // 切换角色
     },
 
     /**
@@ -239,9 +237,6 @@ export default {
   created() {
     this.initChessboardMatrix();
   },
-
-  mounted() {
-  }
 };
 </script>
 

@@ -95,7 +95,7 @@ export default {
      * @param {Number} x 棋子的矩阵x坐标
      * @param {Number} y 棋子的矩阵y坐标
      * @param {String} color 棋子颜色 'blackColor' 或者 'whiteColor'
-     * @return {PreStep} {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标, dom?:element  // dom版才有}
+     * @return {PreStep} {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标}
      */
     drawChessman(x, y, color) {
       const { ctx } = this;
@@ -132,7 +132,7 @@ export default {
 
     /**
      * @method public 悔棋
-     * @param {PreStep} preStep {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标, dom?:element  // dom版才有}
+     * @param {PreStep} preStep {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标}
      */
     unDo(preStep) {
       const { count, padding, color } = this.chessboardStyle;

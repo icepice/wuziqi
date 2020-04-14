@@ -1,23 +1,30 @@
 <!-- @/components/DomVerson.vue -->
 <template>
-  <div class="dom_verson" ref="dom_verson">
-    <!-- 横线模板 -->
-    <div class="horizontal_line" style="display: none" ref="temp_horizontal_line"></div>
-
-    <!-- 竖线模板 -->
-    <div class="vertical_line" style="display: none" ref="temp_vertical_line"></div>
-
-    <!-- 线条集合 -->
-    <div ref="lineList"></div>
-
-    <!-- 棋子模板 -->
-    <div class="chessman" style="display: none" ref="temp_chessman"></div>
-
+  <div class="dom_verson" :style="domVersonStyle">
+    <div 
+      class="horizontal_line" 
+      :style="item.style"
+      v-for="item in horizontalList" :key="item.id">
+    </div>
+    <div 
+      class="vertical_line" 
+      :style="item.style"
+      v-for="item in verticalList" :key="item.id">
+    </div>
     <!-- 棋子集合 -->
-    <div ref="chessmanList"></div>
-
+    <div class="chessmanList">
+      <div 
+        class="chessman" 
+        :style="item.style" 
+        v-for="item in chessmanList" :key="item.id">
+      </div>
+    </div>
     <!-- mask用于遮罩，监听鼠标的点击 -->
-    <div class="mask" ref="mask" @click="!gameOver && listenDropChessman($event)"></div>
+    <div 
+      class="mask" 
+      :style="maskStyle" 
+      @click="!gameOver && listenDropChessman($event)">
+    </div>
   </div>
 </template>
 
@@ -45,6 +52,11 @@ export default {
   },
   data () {
     return {
+      domVersonStyle: null,
+      maskStyle: null,
+      horizontalList: [],  // [{id:String, style:Style}, ...]
+      verticalList: [],
+      chessmanList: []  // [{id:String, style:Style}, ...]
     };
   },
 
@@ -52,41 +64,40 @@ export default {
     /**
      * 绘制棋盘
      */
-    drawChessboard() {     
+    drawChessboard() {
       const { count, padding, color } = this.chessboardStyle;
-      const dom_verson = this.$refs.dom_verson;
-      const mask = this.$refs.mask;
-      const temp_horizontal_line = this.$refs.temp_horizontal_line;
-      const temp_vertical_line = this.$refs.temp_vertical_line;
+      this.domVersonStyle = {
+        width: (count + 1) * padding + 'px',
+        height: (count + 1) * padding + 'px',
+      };
       // 遮罩层的宽高等于整个棋盘宽高
-      mask.style.width = (count + 1) * padding + 'px';
-      mask.style.height = (count + 1) * padding + 'px';
-      mask.style.top = '0px';
-      mask.style.left = '0px';
-        
-      dom_verson.style.padding = padding + 'px';
-      dom_verson.style.width = (count - 1) * padding + 'px';
-      dom_verson.style.height = (count - 1) * padding + 'px';
-
-      // 画横线
+      this.maskStyle = {
+        width: (count + 1) * padding + 'px',
+        height: (count + 1) * padding + 'px',
+        top: 0,
+        left: 0
+      };
       for(let i = 0; i < count; i++) {
-        const horizontal_line = temp_horizontal_line.cloneNode();
-        horizontal_line.style.width = (count - 1) * padding + 'px';
-        horizontal_line.style.top = (i + 1) * padding + 'px';
-        horizontal_line.style.left = padding + 'px';
-        horizontal_line.style.borderTop = `1px ${color} solid`;
-        horizontal_line.style.display = 'inline-block';
-        this.$refs.lineList.appendChild(horizontal_line);
-      }
-      // 画竖线
-      for(let i = 0; i < count; i++) {
-        const vertical_line = temp_vertical_line.cloneNode();
-        vertical_line.style.height = (count - 1) * padding + 'px';        
-        vertical_line.style.top = padding + 'px';
-        vertical_line.style.left = (i + 1) * padding + 'px';
-        vertical_line.style.borderLeft = `1px ${color} solid`;
-        vertical_line.style.display = 'inline-block';
-        this.$refs.lineList.appendChild(vertical_line);
+        // 画横线
+        this.horizontalList.push({
+          id: `hor_${i}`,
+          style: {
+            width: (count - 1) * padding + 'px',
+            top: (i + 1) * padding + 'px',
+            left: padding + 'px',
+            borderTop: `1px ${color} solid`
+          }
+        });
+        // 画竖线
+        this.verticalList.push({
+          id: `ver_${i}`,
+          style: {
+            height: (count - 1) * padding + 'px',
+            top: padding + 'px',
+            left: (i + 1) * padding + 'px',
+            borderLeft: `1px ${color} solid`
+          }
+        })
       }
     },
 
@@ -96,20 +107,22 @@ export default {
      * @param {Number} x 棋子的矩阵x坐标
      * @param {Number} y 棋子的矩阵y坐标
      * @param {String} color 棋子颜色 'blackColor' 或者 'whiteColor'
-     * @return {PreStep} {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标, dom?:element  // dom版才有}
+     * @return {PreStep} {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标}
      */
     drawChessman(x, y, color) {
       const { padding } = this.chessboardStyle;
       const { radius, blackColor, whiteColor } = this.chessmanStyle;
-      const chessman = this.$refs.temp_chessman.cloneNode();      
-      chessman.style.width = radius * 2 + 'px';
-      chessman.style.height = radius * 2 + 'px';
-      chessman.style.left = (x + 1) * padding - radius + 'px';
-      chessman.style.top = (y + 1) * padding - radius + 'px';
-      chessman.style.backgroundColor = color === 'blackColor' ? blackColor : whiteColor;
-      chessman.style.display = 'inline-block';
-      this.$refs.chessmanList.appendChild(chessman);      
-      return {x, y, dom: chessman};
+      this.chessmanList.push({
+        id: `${x}_${y}`,
+        style: {
+          width: radius * 2 + 'px',
+          height: radius * 2 + 'px',
+          left: (x + 1) * padding - radius + 'px',
+          top: (y + 1) * padding - radius + 'px',
+          backgroundColor: color === 'blackColor' ? blackColor : whiteColor,
+        }
+      });
+      return {x, y};
     },
 
     /**
@@ -124,20 +137,20 @@ export default {
      * @method public 重置棋盘
      */
     reset() {
-      this.$refs.chessmanList.innerHTML = '';
+      this.chessmanList = [];
     },
 
     /**
      * @method public 悔棋
-     * @param {PreStep} preStep {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标, dom?:element  // dom版才有}
+     * @param {PreStep} preStep {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标}
      */
     unDo(preStep) {
-      this.$refs.chessmanList.removeChild(preStep.dom); 
+      this.chessmanList.pop();
     }
   },
 
-  mounted() {
-    this.drawChessboard();
+  created() {
+    this.drawChessboard()
   },
 }
 
