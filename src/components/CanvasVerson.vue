@@ -1,8 +1,17 @@
 <!-- @/components/CanvasVerson.vue -->
 <template>
-  <div class="canvas_verson">
-    <canvas ref="canvas" @click="!gameOver && listenDropChessman($event)">
+  <div class="canvas_wrap" :style="wrapStyle">
+    <canvas 
+      class="canvas" 
+      v-show="!loading" 
+      ref="linesCanvas">
       <p>您的浏览器版本过低，请升级您的浏览器</p>
+    </canvas>
+    <canvas 
+      class="canvas" 
+      v-show="!loading" 
+      ref="chessmanCanvas" 
+      @click="!gameOver && listenDropChessman($event)">
     </canvas>
   </div>
 </template>
@@ -32,20 +41,38 @@ export default {
 
   data () {
     return {
-      canvas: null,
-      ctx: null
+      wrapStyle: null,
+      linesCanvas: null,
+      linesCtx: null,
+      chessmanCanvas: null,
+      chessmanCtx: null,
+      loading: true
     };
   },
 
-  computed: {},
-
   methods: {
+    /**
+     * 初始化棋盘容器大小
+     */
+    initCanWrpa() {
+      const { count, padding } = this.chessboardStyle;
+      this.wrapStyle = {
+        width: padding * (count + 1) + 'px',
+        height: padding * (count + 1) + 'px'
+      }
+    },
+
     /**
      * 初始化canvas
      */
     initCanvas() {
-      this.canvas = this.$refs.canvas;
-      this.ctx = this.canvas.getContext("2d");
+      const { count, padding } = this.chessboardStyle;
+
+      this.linesCanvas = this.$refs.linesCanvas;
+      this.linesCtx = this.linesCanvas.getContext("2d");
+      this.chessmanCanvas = this.$refs.chessmanCanvas;
+      this.chessmanCtx = this.chessmanCanvas.getContext("2d");
+      this.linesCanvas.width = this.linesCanvas.height = this.chessmanCanvas.width = this.chessmanCanvas.height = padding * (count + 1);
     },
 
     /**
@@ -64,9 +91,8 @@ export default {
      */
     drawChessboard() {
       const { count, padding, color } = this.chessboardStyle;
-      const { canvas, ctx } = this;
+      const { linesCtx: ctx } = this;
 
-      canvas.width = canvas.height = padding * (count + 1);
       ctx.save(); // 将样式属性入栈
       ctx.strokeStyle = color;
       ctx.beginPath(); // 清空路径
@@ -98,7 +124,7 @@ export default {
      * @return {PreStep} {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标}
      */
     drawChessman(x, y, color) {
-      const { ctx } = this;
+      const { chessmanCtx: ctx } = this;
       const { padding } = this.chessboardStyle;
       const { radius, whiteColor, blackColor } = this.chessmanStyle;
 
@@ -124,10 +150,8 @@ export default {
      * @method public 重置棋盘，点击切换版本、重新开始时调用
      */
     reset() {
-      const { canvas, ctx } = this;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      this.drawChessboard();
+      const { chessmanCanvas } = this;
+      chessmanCanvas.width = chessmanCanvas.width;
     },
 
     /**
@@ -136,7 +160,7 @@ export default {
      */
     unDo(preStep) {
       const { count, padding, color } = this.chessboardStyle;
-      const { ctx } = this;
+      const { chessmanCtx: ctx } = this;
       const { x, y } = preStep;
       const _x = (x + 1) * padding; // 上一步棋子所在的交叉点x
       const _y = (y + 1) * padding; // 上一步棋子所在的交叉点y
@@ -147,32 +171,28 @@ export default {
         padding,
         padding
       );
-
-      ctx.save();
-      ctx.strokeStyle = color;
-      ctx.beginPath();
-      if(y !== 0)
-        this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y - padding * 0.6 });  // 上边线 0.6是为了覆盖更多像素，0.5时有瑕疵
-      if(y !== count - 1)
-        this.drawLine(ctx, { x: _x, y: _y }, { x: _x, y: _y + padding * 0.6 });  // 下边线      
-      if(x !== 0)
-        this.drawLine(ctx, { x: _x, y: _y }, { x: _x - padding * 0.6, y: _y });  // 左边线
-      if(x !== count - 1)
-        this.drawLine(ctx, { x: _x, y: _y }, { x: _x + padding * 0.6, y: _y });  // 右边线
-      ctx.stroke();
-      ctx.restore();
     }
+  },
+
+  created() {
+    this.initCanWrpa();
   },
 
   mounted() {
     this.initCanvas();
     this.drawChessboard();
+    this.loading = false;
   }
 }
-
 </script>
 <style scoped>
-canvas {
+.canvas_wrap {
+  position: relative;
   box-shadow: 2px 2px 4px 8px #eee;
+}
+.canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 </style>
