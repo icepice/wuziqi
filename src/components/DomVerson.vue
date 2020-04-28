@@ -110,6 +110,7 @@ export default {
      * @return {PreStep} {x:number  // 矩阵x坐标, y:number  // 矩阵y坐标}
      */
     drawChessman(x, y, color) {
+      console.log(this)
       const { padding } = this.chessboardStyle;
       const { radius, blackColor, whiteColor } = this.chessmanStyle;
       this.chessmanList.push({

@@ -194,11 +194,11 @@ export default {
      * 悔棋
      */
     unDo() {
+      if (!this.preStep) return;  // 没有落子
       const { preStep, chessboardMatrix, canUndo, gameOver } = this;
       const { count, padding, color } = this.chessboardStyle;
       const { x, y } = this.preStep;
       const currentVer = this.isCanvas ? 'canvasVer' : 'domVer';
-      if (!preStep) return;  // 没有落子
       if (gameOver) return;  // 游戏结束
       if (!canUndo) return;  // 不允许连续悔棋
 
@@ -212,11 +212,11 @@ export default {
      * 撤销悔棋
      */
     cancelUndo() {
+      if (!this.preStep) return; // 没有落子
       const { chessboardMatrix, isBlack, gameOver, canUndo, preStep } = this;
       const { x, y } = this.preStep;
       const currentVer = this.isCanvas ? 'canvasVer' : 'domVer';
       
-      if (!preStep) return; // 没有落子
       if (gameOver) return; // 游戏结束
       if (canUndo) return;  // 悔棋后才能撤销悔棋
       this.canUndo = true; // 撤销悔棋后又可以悔棋
